@@ -6,10 +6,13 @@
 # by state and city.
 ##################################
 import sys
+from tempfile import mkdtemp
 import argparse
 import os
 import shutil
 import json
+import re
+import zipfile
 try:
     # For Python 3.0 and later
     from urllib.request import urlopen, URLError, HTTPError
@@ -28,12 +31,12 @@ def get_jsonparsed_data(url):
 
 
 def main(argv):
-    parser = argparse.ArgumentParser(description='Organize downloaded BNA results by state and city')
-    parser.add_argument('outdir',help='Output directory')
+    parser = argparse.ArgumentParser(description='Swap old census block shapefiles on production S3 for new ones with category scores')
     parser.add_argument('-v',dest='verbose',action='store_true',help='Verbose mode')
     parser.add_argument('-u','--url',dest='url',help='URL to grab JSON neighborhood data from',required=True) # https://bna.peopleforbikes.org/api/neighborhoods/?format=json
     parser.add_argument('-w','--overwrite',dest='overwrite',help='Overwrite existing files',action='store_true')
     parser.add_argument('-i','--id',dest='uuid',help='Neighborhood UUID (if given, only this neighborhood is downloaded)')
+    parser.add_argument('-k','--keep',dest='outdir',help='Keep downloaded originals (OUTDIR = target directory)')
     args = parser.parse_args()
 
     # set vars
@@ -53,42 +56,48 @@ def main(argv):
     # json returns 20 at a time so fetch new results when we're done
     while data:
         for city in data['results']:
-            print('Processing: %s' % city['label'])
-
-            targetPath = os.path.join(outPath,city['state_abbrev'],city['name'])
-            targetFile = os.path.join(targetPath,'neighborhood_census_blocks.zip')
-            # check file if overwrite is not active
-            if os.path.isfile(targetFile) and not overwrite:
-                print('  %s already exists, skipping' % targetFile)
+            if uuid is not None and uuid != city['uuid']:
                 continue
-            # create target directory if it doesn't exist
-            if not os.path.isdir(targetPath):
-                os.makedirs(targetPath)
+            else:
+                print('Processing: %s' % city['label'])
 
-            # download file or copy, depending on args
-            if download:
+                if outPath is None:
+                    outPath = mkdtemp()
+
+                targetPath = os.path.join(outPath,city['state_abbrev'],city['name'])
+                oldFile = os.path.join(targetPath,'neighborhood_census_blocks_old.zip')
+                newFile = os.path.join(targetPath,'neighborhood_census_blocks')
+                # check file if overwrite is not active
+                if os.path.isfile(oldFile) and not overwrite:
+                    print('  %s already exists, skipping' % oldFile)
+                    continue
+                # create target directory if it doesn't exist
+                if not os.path.isdir(targetPath):
+                    os.makedirs(targetPath)
+
+                # download file
                 jobUrl = 'https://bna.peopleforbikes.org/api/analysis_jobs/' \
                             + city['last_job'] \
                             + '/results/?format=json'
                 if verbose:
-                    print('Downloading job data from %s' % jobUrl)
+                    print('  Downloading job data from %s' % jobUrl)
                 try:
                     job = get_jsonparsed_data(jobUrl)
                 except HTTPError, e:
-                    print "HTTP Error:", e.code, url
+                    print "  HTTP Error:", e.code, url
                     continue
                 except URLError, e:
-                    print "URL Error:", e.reason, url
+                    print "  URL Error:", e.reason, url
                     continue
 
                 fileUrl = job['census_blocks_url']
                 try:
                     f = urlopen(fileUrl)
                     if verbose:
-                        print('Downloading file from %s' % fileUrl)
+                        print('  Downloading file from %s' % fileUrl)
 
                     # Open our local file for writing
-                    with open(targetFile, "wb") as local_file:
+                    with open(oldFile, "wb") as local_file:
                         local_file.write(f.read())
 
                 #handle errors
@@ -99,21 +108,17 @@ def main(argv):
                     print "URL Error:", e.reason, url
                     continue
 
-            else:
-                sourcePath = os.path.join(inPath,city['last_job'])
-
-                # check to make sure source directory exists
-                if not os.path.isdir(sourcePath):
-                    print('    %s does not exist' % sourcePath)
-                    break
-
-                # copy file
+                # copy to new shapefile with additional attributes
                 if verbose:
-                    print('Copying neighborhood_census_blocks.zip from %s to %s' % (sourcePath,targetPath))
-                shutil.copyfile(
-                    os.path.join(sourcePath,'neighborhood_census_blocks.zip'),
-                    os.path.join(targetFile)
-                )
+                    print('  Adding scores to neighborhood_census_blocks and saving')
+                os.system(os.path.join(os.getcwd(),"add_scores.py %s %s") % (oldFile,newFile))
+                shutil.make_archive(newFile,"zip",newFile)
+
+                # copy to s3
+                s3url = re.sub('https://s3.amazonaws.com/','s3://',fileUrl)
+                if verbose:
+                    print('  Uploading %s.zip to %s' % (newFile,s3url))
+                #os.system('aws s3 cp %s %s' % (newFile,s3url))
 
         if data['next'] is None:
             break
