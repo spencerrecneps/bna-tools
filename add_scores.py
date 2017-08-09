@@ -111,6 +111,24 @@ def main(argv):
             )
     )
 
+    # fix conversion from zeros to nulls
+    blocks['POP_SCORE'] = np.where(blocks['POP_HIGH_S'] == 0, np.nan, blocks['POP_SCORE'])
+    blocks['EMP_SCORE'] = np.where(blocks['EMP_HIGH_S'] == 0, np.nan, blocks['EMP_SCORE'])
+    blocks['SCHOOLS_SC'] = np.where(blocks['SCHOOLS_HI'] == 0, np.nan, blocks['SCHOOLS_SC'])
+    blocks['UNIVERS_02'] = np.where(blocks['UNIVERS_01'] == 0, np.nan, blocks['UNIVERS_02'])
+    blocks['COLLEGES_S'] = np.where(blocks['COLLEGES_H'] == 0, np.nan, blocks['COLLEGES_S'])
+    blocks['DOCTORS_SC'] = np.where(blocks['DOCTORS_HI'] == 0, np.nan, blocks['DOCTORS_SC'])
+    blocks['DENTISTS_S'] = np.where(blocks['DENTISTS_H'] == 0, np.nan, blocks['DENTISTS_S'])
+    blocks['HOSPITA_02'] = np.where(blocks['HOSPITA_01'] == 0, np.nan, blocks['HOSPITA_02'])
+    blocks['PHARMAC_02'] = np.where(blocks['PHARMAC_01'] == 0, np.nan, blocks['PHARMAC_02'])
+    blocks['RETAIL_SCO'] = np.where(blocks['RETAIL_HIG'] == 0, np.nan, blocks['RETAIL_SCO'])
+    blocks['SUPERMA_02'] = np.where(blocks['SUPERMA_01'] == 0, np.nan, blocks['SUPERMA_02'])
+    blocks['SOCIAL__02'] = np.where(blocks['SOCIAL__01'] == 0, np.nan, blocks['SOCIAL__02'])
+    blocks['PARKS_SCOR'] = np.where(blocks['PARKS_HIGH'] == 0, np.nan, blocks['PARKS_SCOR'])
+    blocks['TRAILS_SCO'] = np.where(blocks['TRAILS_HIG'] == 0, np.nan, blocks['TRAILS_SCO'])
+    blocks['COMMUNI_02'] = np.where(blocks['COMMUNI_01'] == 0, np.nan, blocks['COMMUNI_02'])
+    blocks['TRANSIT_SC'] = np.where(blocks['TRANSIT_HI'] == 0, np.nan, blocks['TRANSIT_SC'])
+
     # save the result
     if verbose:
         print('  saving')

@@ -118,7 +118,7 @@ def main(argv):
                 s3url = re.sub('https://s3.amazonaws.com/','s3://',fileUrl)
                 if verbose:
                     print('  Uploading %s.zip to %s' % (newFile,s3url))
-                #os.system('aws s3 cp %s %s' % (newFile,s3url))
+                os.system('aws s3 cp %s.zip %s' % (newFile,s3url))
 
         if data['next'] is None:
             break
