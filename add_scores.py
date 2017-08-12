@@ -60,7 +60,7 @@ def main(argv):
         blocks['DOCTORS_HI'] + blocks['DENTISTS_H'] + blocks['HOSPITA_01'] \
             + blocks['PHARMAC_01'] + blocks['SUPERMA_01'] + blocks['SOCIAL__01'] == 0,
         0,
-        100 \
+        1 \
             * (20 * blocks['DOCTORS_SC'] \
                 + 10 * blocks['DENTISTS_S'] \
                 + 20 * blocks['HOSPITA_02'] \
@@ -83,7 +83,7 @@ def main(argv):
         blocks['EMP_HIGH_S'] + blocks['SCHOOLS_HI'] + blocks['COLLEGES_H'] \
             + blocks['UNIVERS_01'] == 0,
         0,
-        100 \
+        1 \
             * (35 * blocks['EMP_SCORE'] \
                 + 35 * blocks['SCHOOLS_SC'] \
                 + 10 * blocks['COLLEGES_S'] \
@@ -101,7 +101,7 @@ def main(argv):
     blocks['RECREATION'] = np.where(
         blocks['PARKS_HIGH'] + blocks['TRAILS_HIG'] + blocks['COMMUNI_01'] == 0,
         0,
-        100 \
+        1 \
             * (40 * blocks['PARKS_SCOR'] \
                 + 35 * blocks['TRAILS_SCO'] \
                 + 25 * blocks['COMMUNI_02']) \
