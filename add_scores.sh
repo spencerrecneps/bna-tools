@@ -25,6 +25,8 @@ elif [[ "${file}" == *.zip ]]; then
     tablename=`basename ${file} .zip`
     file="${tempdir}/${tablename}.shp"
 else
+    echo "Cannot process ${file}"
+    exit 1
 fi
 
 # add fields to shapefile
