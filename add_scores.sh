@@ -9,27 +9,37 @@
 
 cd "$(dirname "$0")"
 
+file="${1}"
+
 # check that input file exists
-if [ ! -e $1 ]; then
-    echo "$1 is not a file"
+if [ ! -e "${file}" ]; then
+    echo "${file} is not a file"
     exit 1
 fi
 
-tablename=`basename $1 .shp`
+if [[ "${file}" == *.shp ]]; then
+    tablename=`basename "${file}" .shp`
+elif [[ "${file}" == *.zip ]]; then
+    tempdir=`mktemp -d`
+    unzip ${file} -d ${tempdir}
+    tablename=`basename ${file} .zip`
+    file="${tempdir}/${tablename}.shp"
+else
+fi
 
 # add fields to shapefile
-ogrinfo $1 \
+ogrinfo "${file}" \
     -sql "ALTER TABLE ${tablename} ADD COLUMN \"CORESVCS\" float"
-ogrinfo $1 \
+ogrinfo "${file}" \
     -sql "ALTER TABLE ${tablename} ADD COLUMN \"OPPRTNTY\" float"
-ogrinfo $1 \
+ogrinfo "${file}" \
     -sql "ALTER TABLE ${tablename} ADD COLUMN \"RECREATION\" float"
 
 ################################
 # calculate scores
 ################################
 # CORESVCS
-ogrinfo $1 \
+ogrinfo "${file}" \
     -dialect SQLite \
     -sql "  UPDATE  ${tablename}
             SET     \"CORESVCS\" = (
@@ -53,7 +63,7 @@ ogrinfo $1 \
                     + COALESCE(\"SUPERMA_01\",0) + COALESCE(\"SOCIAL__01\",0) > 0"
 
 # OPPRTNTY
-ogrinfo $1 \
+ogrinfo "${file}" \
     -dialect SQLite \
     -sql "  UPDATE  ${tablename}
             SET     \"OPPRTNTY\" = (
@@ -72,7 +82,7 @@ ogrinfo $1 \
                     + COALESCE(\"COLLEGES_H\",0) + COALESCE(\"UNIVERS_02\",0) > 0"
 
 # RECREATION
-ogrinfo $1 \
+ogrinfo "${file}" \
     -dialect SQLite \
     -sql "  UPDATE  ${tablename}
             SET     \"RECREATION\" = (
@@ -87,3 +97,8 @@ ogrinfo $1 \
             WHERE   \"OVERALL_SC\" IS NOT NULL
             AND     COALESCE(\"PARKS_HIGH\",0) + COALESCE(\"TRAILS_HIG\",0)
                     + COALESCE(\"COMMUNI_01\",0) > 0"
+
+# rezip if necessary
+if [[ "${1}" == *.zip ]]; then
+    zip -r ${1} ${tempdir}/${tablename}.*
+fi

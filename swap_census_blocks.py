@@ -37,6 +37,7 @@ def main(argv):
     parser.add_argument('-w','--overwrite',dest='overwrite',help='Overwrite existing files',action='store_true')
     parser.add_argument('-i','--id',dest='uuid',help='Neighborhood UUID (if given, only this neighborhood is downloaded)')
     parser.add_argument('-k','--keep',dest='outdir',help='Keep downloaded originals (OUTDIR = target directory)')
+    parser.add_argument('-c','--copy',dest='copy',help='Copy new output back to S3',action='store_true')
     args = parser.parse_args()
 
     # set vars
@@ -47,6 +48,7 @@ def main(argv):
     url = args.url
     overwrite = args.overwrite
     uuid = args.uuid
+    copy = args.copy
 
     # grab json data from url
     if verbose:
@@ -111,14 +113,15 @@ def main(argv):
                 # copy to new shapefile with additional attributes
                 if verbose:
                     print('  Adding scores to neighborhood_census_blocks and saving')
-                os.system(os.path.join(os.getcwd(),"add_scores.py %s %s") % (oldFile,newFile))
+                os.system(os.path.join(os.getcwd(),"add_scores.sh %s %s") % (oldFile,newFile))
                 shutil.make_archive(newFile,"zip",newFile)
 
                 # copy to s3
-                s3url = re.sub('https://s3.amazonaws.com/','s3://',fileUrl)
-                if verbose:
-                    print('  Uploading %s.zip to %s' % (newFile,s3url))
-                os.system('aws s3 cp %s.zip %s' % (newFile,s3url))
+                if copy:
+                    s3url = re.sub('https://s3.amazonaws.com/','s3://',fileUrl)
+                    if verbose:
+                        print('  Uploading %s.zip to %s' % (newFile,s3url))
+                    os.system('aws s3 cp %s.zip %s' % (newFile,s3url))
 
         if data['next'] is None:
             break
