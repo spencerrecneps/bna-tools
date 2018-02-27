@@ -138,5 +138,6 @@ ogrinfo ${file} \
 
 # rezip if necessary
 if [[ ${outext} == "zip" ]]; then
-    zip -r ${2} ${tempdir}/${outfile}.*
+    zip -j ${2} ${tempdir}/${outfile}.*
+    rm -rf ${tempdir}
 fi
