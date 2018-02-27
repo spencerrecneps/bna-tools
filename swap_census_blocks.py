@@ -68,7 +68,7 @@ def main(argv):
 
                 targetPath = os.path.join(outPath,city['state_abbrev'],city['name'])
                 oldFile = os.path.join(targetPath,'neighborhood_census_blocks_old.zip')
-                newFile = os.path.join(targetPath,'neighborhood_census_blocks')
+                newFile = os.path.join(targetPath,'neighborhood_census_blocks.zip')
                 # check file if overwrite is not active
                 if os.path.isfile(oldFile) and not overwrite:
                     print('  %s already exists, skipping' % oldFile)
@@ -114,14 +114,14 @@ def main(argv):
                 if verbose:
                     print('  Adding scores to neighborhood_census_blocks and saving')
                 os.system(os.path.join(os.getcwd(),"add_scores.sh %s %s") % (oldFile,newFile))
-                shutil.make_archive(newFile,"zip",newFile)
+                # shutil.make_archive(newFile,"zip",newFile)
 
                 # copy to s3
                 if copy:
                     s3url = re.sub('https://s3.amazonaws.com/','s3://',fileUrl)
                     if verbose:
-                        print('  Uploading %s.zip to %s' % (newFile,s3url))
-                    os.system('aws s3 cp %s.zip %s' % (newFile,s3url))
+                        print('  Uploading %s to %s' % (newFile,s3url))
+                    os.system('aws s3 cp %s %s' % (newFile,s3url))
 
         if data['next'] is None:
             break
