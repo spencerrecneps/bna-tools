@@ -137,6 +137,6 @@ ogrinfo ${file} \
                     + COALESCE(\"COMMUNI_01\",0) > 0"
 
 # rezip if necessary
-if [[ ${outext} == ".zip" ]]; then
+if [[ ${outext} == "zip" ]]; then
     zip -r ${2} ${tempdir}/${outfile}.*
 fi
