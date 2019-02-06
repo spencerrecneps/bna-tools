@@ -5,11 +5,11 @@
 
 
 import argparse
-import sys, os, random
+import sys, os, random, csv
 import geopandas as gpd
 
 BNA_POPULATION = "POP10"
-BNA_EMPLOYMENT = "jobs"
+BNA_EMPLOYMENT = "S000"
 BNA_BLOCKID = "BLOCKID10"
 
 
@@ -27,6 +27,9 @@ def main(argv):
     overwrite = args.overwrite
     input_shapefile = args.input_shapefile
     output_shapefile = args.output_shapefile
+    output_file_name = os.path.splitext(output_shapefile)[0]
+    output_jobs_main_csv = output_file_name+"_main.csv"
+    output_jobs_aux_csv = output_file_name+"_aux.csv"
     population_column = args.population_column
     if args.employment_column == "":
         employment_column = None
@@ -42,6 +45,10 @@ def main(argv):
         raise ValueError("File {} not found".format(input_shapefile))
     if not overwrite and os.path.isfile(output_shapefile):
         raise ValueError("File {} already exists (hint: use the -o flag to overwrite)".format(output_shapefile))
+    if not overwrite and employment_column:
+        for f in [output_jobs_main_csv,output_jobs_aux_csv]:
+            if os.path.isfile(f):
+                raise ValueError("File {} already exists (hint: use the -o flag to overwrite)".format(f))
     try:
         int(crs)
     except:
@@ -86,9 +93,34 @@ def main(argv):
             return "{:015d}".format(i)
     gdf[BNA_BLOCKID] = gdf.apply(assign_ids,axis=1)
 
-    # save to output
+    # save population to output
     gdf.crs = crs
     gdf.to_file(output_shapefile)
+
+    # create jobs
+    print(employment_column)
+    print(output_jobs_main_csv)
+    print(output_jobs_aux_csv)
+    if employment_column:
+        # gdf = gdf.drop(columns=[BNA_POPULATION,gdf.geometry.name])
+        gdf["w_geocode"] = gdf[BNA_BLOCKID].copy()
+        gdf["h_geocode"] = gdf[BNA_BLOCKID].copy()
+        gdf = gdf[["w_geocode","h_geocode",BNA_EMPLOYMENT]]
+        gdf["SA01"] = 0
+        gdf["SA02"] = 0
+        gdf["SA03"] = 0
+        gdf["SE01"] = 0
+        gdf["SE02"] = 0
+        gdf["SE03"] = 0
+        gdf["SI01"] = 0
+        gdf["SI02"] = 0
+        gdf["SI03"] = 0
+        gdf["createdate"] = " "
+
+        gdf.to_csv(output_jobs_main_csv,index=False,quoting=csv.QUOTE_NONNUMERIC)
+
+        gdf[BNA_EMPLOYMENT] = 0
+        gdf.to_csv(output_jobs_aux_csv,index=False,quoting=csv.QUOTE_NONNUMERIC)
 
 
 if __name__ == "__main__":
