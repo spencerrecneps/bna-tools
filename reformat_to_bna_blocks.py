@@ -5,7 +5,7 @@
 
 
 import argparse
-import sys, os, random, csv
+import sys, os, random, csv, tempfile, zipfile
 import geopandas as gpd
 
 BNA_POPULATION = "POP10"
@@ -16,7 +16,7 @@ BNA_BLOCKID = "BLOCKID10"
 def main(argv):
     parser = argparse.ArgumentParser(description="Convert an input shapefile into a BNA-ready format")
     parser.add_argument("input_shapefile",help="Input shapefile")
-    parser.add_argument("output_shapefile",help="Output shapefile")
+    parser.add_argument("output_shapefile",help="Output file (.shp or .zip)")
     parser.add_argument("population_column",help="Name of the column with population data")
     parser.add_argument("-e",dest="employment_column",help="Name of the column with employment data (if omitted employment is left out of the output)",default="")
     parser.add_argument("-o",dest="overwrite",action="store_true",help="Overwrite an existing shapefile (if one exists)",default=False)
@@ -27,6 +27,10 @@ def main(argv):
     overwrite = args.overwrite
     input_shapefile = args.input_shapefile
     output_shapefile = args.output_shapefile
+    if os.path.splitext(output_shapefile)[1] == ".zip":
+        zipout = True
+    else:
+        zipout = False
     output_file_name = os.path.splitext(output_shapefile)[0]
     output_jobs_main_csv = output_file_name+"_main.csv"
     output_jobs_aux_csv = output_file_name+"_aux.csv"
@@ -94,8 +98,20 @@ def main(argv):
     gdf[BNA_BLOCKID] = gdf.apply(assign_ids,axis=1)
 
     # save population to output
+    if zipout:
+        fname = os.path.basename(output_shapefile)
+        fbase, fext = os.path.splitext(fname)
+        temp_output_dir = tempfile.mkdtemp()
+        population_output_path = os.path.join(temp_output_dir,fbase+".shp")
+    else:
+        population_output_path = output_shapefile
     gdf.crs = crs
-    gdf.to_file(output_shapefile)
+    gdf.to_file(population_output_path)
+    if zipout:
+        zip_file = zipfile.ZipFile(output_shapefile, "w")
+        for f in os.listdir(temp_output_dir):
+            zip_file.write(os.path.join(temp_output_dir,f),arcname=f)
+        zip_file.close()
 
     # create jobs
     print(employment_column)
